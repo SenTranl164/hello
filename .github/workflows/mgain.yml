@@ -1,0 +1,35 @@
+name: Cisco Packet Tracer Auto Download
+on:
+  workflow_dispatch  # 仅手动触发，确保30秒时效
+
+permissions:
+  contents: write
+
+jobs:
+  download-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      # 核心：一条链式命令，POST拿链接 + 直接curl下载（无&解析问题）
+      - name: 极速获取链接并下载
+        run: |
+          curl -s -X POST https://api.netacad.com/api \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJPQlMwemNrUkZoS1l1SWs2enBvOXVzRXEteENFVkFPTnhEWklvRmtVTnJFIn0.eyJleHAiOjE3NzgwMDQ2NTQsImlhdCI6MTc3ODAwMzc1NCwiYXV0aF90aW1lIjoxNzc4MDAzNzE1LCJqdGkiOiJvbnJ0YWM6YTA5NDgyNjEtZGM4Yy02MTAzLTFmM2YtZDQ5Mzg4MWY0NzNlIiwiaXNzIjoiaHR0cHM6Ly9hdXRoLm5ldGFjYWQuY29tL2F1dGgvcmVhbG1zL3NraWxsc2ZvcmFsbCIsInN1YiI6ImY6ZTM0MWRiYTgtMjBlMS00YzI3LTgzYTAtZTFlMjdmYTljOGU0OnNlbnRyYW5sMzUzOUAxNjMuY29tIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoiYjJlLW1hcmtldHBsYWNlIiwic2lkIjoiNjA2NjY3NzQtMTViNy00YjIyLTk1YjktYzU4ZGJhMjllZjFkIiwic2NvcGUiOiJvcGVuaWQgZW1haWwgcHJvZmlsZSB1c2VyX2RhdGEiLCJ1c2VyX3V1aWQiOiJkMDk2ZTg4Ni01ZTAwLTQwZWUtYjFhMC02MjIxNDhjZjk0NTkiLCJlbWFpbF92ZXJpZmllZCI6ZmFsc2UsInVzZXJfcm9sZXNfd2l0aF9vcmciOlsiTEVBUk5FUiJdLCJ1c2VyX2lkIjoic2VudHJhbmwzNTM5QDE2My5jb20iLCJ1c2VyX29yZ19uYW1lIjoic2tpbGxzZm9yYWxsIiwibmFtZSI6InMgcyIsInByZWZlcnJlZF91c2VybmFtZSI6InNlbnRyYW5sMzUzOUAxNjMuY29tIiwidXNlcl9yb2xlcyI6WyJMRUFSTkVSIl0sImdpdmVuX25hbWUiOiJzIiwibG9jYWxlIjoiemgtQ04iLCJmYW1pbHlfbmFtZSI6InMiLCJlbWFpbCI6InNlbnRyYW5sMzUzOUAxNjMuY29tIn0.q6o7ana93k1A_rGt3Zvrb21niJ1IIkuIox7EogwtFGpIC6TRuNzbpao8hNPtftdtRELQTkxaEgs2ZpmFCDU8ZHCxFk4cpGcBjSXb1Au2a-Nt5lc1OQ2GsmpNP3SdJ7b2GZdOUhumd8c1HNuDRb1xrO7p0RaykdM1I_1D7U6-TTCjt_l6qrlOkG12QSE9Gvrj0IuzL_gyiLkO5DHy8t0dfwa6TM5MF4wN9Nq5LPeE054e0Uzz3oavMCwgMG2x4x697wesPU99iFSyk3yXqb4NoA26SwWViI8Xc_qIwoQC-RbcTNkMva2NmtL57VYA8twQQLAP36nGDnKL9rmR_tdKlg" \
+            -d '{"operationName":"getResourceLocationDownload","query":"query getResourceLocationDownload($resourceId: ID!) {\ngetResourceLocationDownload(resourceId: $resourceId)\n}\n","variables":{"resourceId":"8f1527f7-f188-4655-909a-8199135ac6d8"}}' \
+            | jq -r '.data.getResourceLocationDownload' \
+            | xargs curl -L -o CiscoPacketTracer_900_win_64bit.exe
+
+      # 检出仓库（下载完成后再操作，不占用30秒时效）
+      - name: 检出仓库
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      # 提交并推送文件
+      - name: 上传文件到GitHub
+        run: |
+          git config --local user.name "Auto Bot"
+          git config --local user.email "bot@github.com"
+          git add CiscoPacketTracer_900_win_64bit.exe
+          git commit -m "Auto upload Cisco Packet Tracer $(date +'%Y-%m-%d')"
+          git push
